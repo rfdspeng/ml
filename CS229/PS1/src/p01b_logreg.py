@@ -36,13 +36,10 @@ def main(train_path, eval_path, pred_path):
     clf.max_iter = 400000
     
     # Learning rate (alpha) for gradient descent
-    clf.step_size = 0.000001 # this step size leads to convergence
-    clf.step_size = 0.00001
-    
-    
-    #clf.verbose = False
-    
+    clf.step_size = 0.000001 # this step size leads to convergence for batch gradient descent    
     clf.fit(x_train, y_train, solver='bgd')
+    
+    
     #clf.predict(x_eval)
     return clf
 
@@ -84,8 +81,8 @@ class LogisticRegression(LinearModel):
         if self.theta == None:
             self.theta = np.zeros((n,1))
         
-        # Gradient descent solver
-        if solver == 'bgd':
+        # Iteration algorithm
+        if solver == 'bgd': # batch gradient descent
             print('Logistic regression using batch gradient descent with learning rate = ' + str(self.step_size))
             print('------------------------------------------\n')
             
@@ -128,12 +125,8 @@ class LogisticRegression(LinearModel):
                     losses[odx] = loss
                     odx = odx+1
                     
-            
-                # Loop over input features and calculate updates for next iteration
-                for ndx in range(n):
-                    # Update calculation
-                    correction = self.step_size*err*x[ndx,:] # correction term is error * x
-                    updates[ndx] = np.sum(correction,axis=1)
+                # Calculate updates for next iteration
+                updates = self.step_size*np.matmul(x,err.transpose())
                 
                 # Update theta
                 self.theta = self.theta + updates
@@ -201,9 +194,11 @@ class LogisticRegression(LinearModel):
                 plt.xticks(fontsize=20)
                 plt.yticks(fontsize=20)
                 plt.grid()
+        
+        elif solver == 'sgd': # stochastic gradient descent
+            'tbd'
                 
-                
-        elif solver == 'newton':
+        elif solver == 'newton': # Newton's method
             'tbd'
                     
             
