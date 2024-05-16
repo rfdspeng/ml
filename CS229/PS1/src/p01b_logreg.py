@@ -2,6 +2,7 @@ import numpy as np
 import util
 import matplotlib.pyplot as plt
 from IPython import get_ipython
+import time
 
 from linear_model import LinearModel
 
@@ -33,10 +34,10 @@ def main(train_path, eval_path, pred_path):
     plt.grid()    
     
     clf = LogisticRegression()
-    clf.step_size = 0.0001 # learning rate for gradient descent
-    clf.max_iter = 400000
-    #clf.verbose = False
-    clf.fit(x_train, y_train, solver='bgd')
+    clf.max_iter = 400000; clf.step_size = 0.000001; clf.fit(x_train, y_train, solver='bgd')
+    #clf.eps = 0; clf.max_iter = round(4e5); clf.step_size = 0.001; clf.fit(x_train, y_train, solver='sgd')
+    
+    
     #clf.predict(x_eval)
     return clf
 
@@ -78,69 +79,93 @@ class LogisticRegression(LinearModel):
         if self.theta == None:
             self.theta = np.zeros((n,1))
         
-        # Gradient descent solver
-        if solver == 'bgd':
-            print('Logistic regression using batch gradient descent with learning rate = ' + str(self.step_size))
+        # Iteration algorithm
+        tstart = time.perf_counter() # in seconds
+        if solver == 'bgd' or solver == 'sgd': # batch or stochastic gradient descent
+            print('Logistic regression using ' + solver + ' with learning rate = ' + str(self.step_size))
             print('------------------------------------------\n')
+            
+            if solver == 'sgd':
+                mdx = 0 # sample index
             
             # Data for plotting
             if self.verbose:
                 niter = 10
                 idxs = round(self.max_iter/niter)*np.array(range(niter))
+                idxs = np.append(idxs,self.max_iter-1)
                 thetas = np.zeros((self.theta.size,idxs.size)) # thetas. Dimensions: n x idxs
-                errs = np.zeros_like(idxs) # sum(abs(y-g))
-                losses = np.zeros_like(idxs) # log likelihood
+                errs = np.zeros(idxs.shape) # sum(abs(y-g))
+                losses = np.zeros(idxs.shape) # log likelihood
                 odx = 0
 
             # Theta iterations
             updates = np.zeros((n,1))
             for idx in range(self.max_iter):
+                if solver == 'bgd':
+                    x_sample = x
+                    y_sample = y
+                elif solver == 'sgd':
+                    x_sample = x[:,mdx]
+                    x_sample = np.reshape(x_sample,(x_sample.size,1))
+                    y_sample = y[mdx]
+                    
                 # Calculate the hypothesis, h = g(<theta,x>). g is the sigmoid function.
-                theta_dot_x = np.matmul(self.theta.transpose(),x) # dot product of theta and x, <theta,x>. Dimensions: 1 x m
+                theta_dot_x = np.matmul(self.theta.transpose(),x_sample) # dot product of theta and x, <theta,x>. Dimensions: 1 x m
                 theta_dot_x[np.where(theta_dot_x < -20)] = -20 # avoid overflow
                 theta_dot_x[np.where(theta_dot_x > 20)] = 20
                 g = 1/(1 + np.exp(-theta_dot_x)) # g(<theta,x>). Dimensions: 1 x m
-                err = y-g # error
                 
-                if self.verbose and (idx % round(self.max_iter/niter) == 0):
-                    # Calculate loss
-                    ell = y*np.log(g) + (1-y)*np.log(1-g)
-                    ell = np.sum(ell,axis=1)[0] # likelihood (which we're trying to maximize)
-                    loss = -ell/m # loss (which we're trying to minimize)
+                err = y_sample-g # error
+                if solver == 'bgd':
+                    updates = self.step_size*np.matmul(x_sample,err.transpose()) # updates for next iteration
+                elif solver == 'sgd':
+                    updates = self.step_size*x_sample*err
+
+                # Print debug outputs and check for convergence
+                updates_l1_norm = sum(abs(updates))[0]
+                if (self.verbose and idx in idxs) or updates_l1_norm < self.eps:
+                    if self.verbose:
+                        # Calculate loss
+                        ell = y_sample*np.log(g) + (1-y_sample)*np.log(1-g)
+                        ell = np.sum(ell,axis=1)[0] # likelihood (which we're trying to maximize)
+                        if solver == 'bgd':
+                            loss = -ell/m # loss (which we're trying to minimize)
+                        elif solver == 'sgd':
+                            loss = -ell
+                        
+                        print('Iteration: ' + str(idx))
+                        print('------------------------------------------')
+                        print('Theta = ' + str(np.round(self.theta,2)))
+                        err_abs_sum = np.sum(abs(err),axis=1)[0]
+                        print('Sum of absolute error = ' + str(np.round(err_abs_sum,2)))
+                        print('Log likelihood = ' + str(round(ell,2)))
+                        print('Loss = ' + str(round(loss,2)))
+                        print('Update = ' + str(np.round(updates,2)))
+                        print('L1 norm of update vector = ' + str(updates_l1_norm))
+                        print('\n')
+                        
+                        thetas[:,odx] = np.reshape(self.theta,self.theta.size)
+                        errs[odx] = err_abs_sum
+                        losses[odx] = loss
+                        
+                        if updates_l1_norm < self.eps:
+                            # Truncate output variables
+                            idxs[odx] = idx
+                            idxs = idxs[0:odx+1]
+                            thetas = thetas[:,0:odx+1]
+                            errs = errs[0:odx+1]
+                            losses = losses[0:odx+1]
+                        
+                        odx = odx+1
                     
-                    print('Iteration: ' + str(idx))
-                    print('------------------------------------------')
-                    print('Theta = ' + str(np.round(self.theta,2)))
-                    err_abs_sum = np.sum(abs(err),axis=1)[0]
-                    print('Sum of absolute error = ' + str(np.round(err_abs_sum,2)))
-                    print('Log likelihood = ' + str(round(ell,2)))
-                    print('Loss = ' + str(round(loss,2)))
-                    
-                    thetas[:,odx] = np.reshape(self.theta,self.theta.size)
-                    errs[odx] = err_abs_sum
-                    losses[odx] = loss
-                    odx = odx+1
-                    
-            
-                # Loop over input features and calculate updates for next iteration
-                for ndx in range(n):
-                    # Update calculation
-                    correction = self.step_size*err*x[ndx,:] # correction term is error * x
-                    updates[ndx] = np.sum(correction,axis=1)
+                    # If L1 norm of the updates is less than epsilon, you're finished
+                    if updates_l1_norm < self.eps:
+                        break                 
                 
                 # Update theta
                 self.theta = self.theta + updates
-                
-                # If L1 norm of the updates is less than epsilon, you're finished
-                updates_l1_norm = sum(abs(updates))[0]
-                if updates_l1_norm < self.eps:
-                    break
-                
-                # Debug messages
-                if self.verbose and (idx % round(self.max_iter/niter) == 0):
-                    print('Update = ' + str(np.round(updates,2)))
-                    print('L1 norm of update vector = ' + str(updates_l1_norm))
-                    print('\n')
+                if solver == 'sgd':
+                    mdx = (mdx+1) % m
             
             if self.verbose:
                 plt.figure()
@@ -173,9 +198,12 @@ class LogisticRegression(LinearModel):
                 plt.yticks(fontsize=20)
                 plt.grid()
                 
-                
-        elif solver == 'newton':
+        elif solver == 'newton': # Newton's method
             'tbd'
+            
+        tstop = time.perf_counter() # in seconds
+        telapse = tstop-tstart
+        print('Elapsed time (s) = ' + str(telapse))
                     
             
 
