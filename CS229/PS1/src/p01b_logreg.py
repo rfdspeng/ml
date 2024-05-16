@@ -33,9 +33,15 @@ def main(train_path, eval_path, pred_path):
     plt.grid()    
     
     clf = LogisticRegression()
-    clf.step_size = 0.0001 # learning rate for gradient descent
     clf.max_iter = 400000
+    
+    # Learning rate (alpha) for gradient descent
+    clf.step_size = 0.000001 # this step size leads to convergence
+    clf.step_size = 0.00001
+    
+    
     #clf.verbose = False
+    
     clf.fit(x_train, y_train, solver='bgd')
     #clf.predict(x_eval)
     return clf
@@ -87,9 +93,10 @@ class LogisticRegression(LinearModel):
             if self.verbose:
                 niter = 10
                 idxs = round(self.max_iter/niter)*np.array(range(niter))
+                idxs = np.append(idxs,self.max_iter-1)
                 thetas = np.zeros((self.theta.size,idxs.size)) # thetas. Dimensions: n x idxs
-                errs = np.zeros_like(idxs) # sum(abs(y-g))
-                losses = np.zeros_like(idxs) # log likelihood
+                errs = np.zeros(idxs.shape) # sum(abs(y-g))
+                losses = np.zeros(idxs.shape) # log likelihood
                 odx = 0
 
             # Theta iterations
@@ -102,7 +109,7 @@ class LogisticRegression(LinearModel):
                 g = 1/(1 + np.exp(-theta_dot_x)) # g(<theta,x>). Dimensions: 1 x m
                 err = y-g # error
                 
-                if self.verbose and (idx % round(self.max_iter/niter) == 0):
+                if self.verbose and idx in idxs:
                     # Calculate loss
                     ell = y*np.log(g) + (1-y)*np.log(1-g)
                     ell = np.sum(ell,axis=1)[0] # likelihood (which we're trying to maximize)
@@ -134,10 +141,32 @@ class LogisticRegression(LinearModel):
                 # If L1 norm of the updates is less than epsilon, you're finished
                 updates_l1_norm = sum(abs(updates))[0]
                 if updates_l1_norm < self.eps:
+                    if self.verbose:
+                        # Truncate output variables
+                        bmask = idxs <= idx
+                        idxs = idxs[bmask]
+                        thetas = thetas[:,bmask]
+                        errs = errs[bmask]
+                        losses = losses[bmask]
+                        
+                        # Add last iteration
+                        
+                        # Calculate loss
+                        ell = y*np.log(g) + (1-y)*np.log(1-g)
+                        ell = np.sum(ell,axis=1)[0] # likelihood (which we're trying to maximize)
+                        loss = -ell/m # loss (which we're trying to minimize)
+                        
+                        err_abs_sum = np.sum(abs(err),axis=1)[0]
+                        
+                        idxs = np.append(idxs,idx)
+                        thetas = np.append(thetas,self.theta,axis=1)
+                        errs = np.append(errs,err_abs_sum)
+                        losses = np.append(losses,loss)
+                        
                     break
                 
                 # Debug messages
-                if self.verbose and (idx % round(self.max_iter/niter) == 0):
+                if self.verbose and idx in idxs:
                     print('Update = ' + str(np.round(updates,2)))
                     print('L1 norm of update vector = ' + str(updates_l1_norm))
                     print('\n')
