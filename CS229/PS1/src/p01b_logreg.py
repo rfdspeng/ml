@@ -34,11 +34,8 @@ def main(train_path, eval_path, pred_path):
     plt.grid()    
     
     clf = LogisticRegression()
-    clf.max_iter = 400000
-    
-    # Learning rate (alpha) for gradient descent
-    clf.step_size = 0.000001 # this step size leads to convergence for batch gradient descent    
-    clf.fit(x_train, y_train, solver='bgd')
+    clf.max_iter = 400000; clf.step_size = 0.000001; clf.fit(x_train, y_train, solver='bgd')
+    #clf.eps = 0; clf.max_iter = round(4e5); clf.step_size = 0.001; clf.fit(x_train, y_train, solver='sgd')
     
     
     #clf.predict(x_eval)
@@ -84,9 +81,12 @@ class LogisticRegression(LinearModel):
         
         # Iteration algorithm
         tstart = time.perf_counter() # in seconds
-        if solver == 'bgd': # batch gradient descent
-            print('Logistic regression using batch gradient descent with learning rate = ' + str(self.step_size))
+        if solver == 'bgd' or solver == 'sgd': # batch or stochastic gradient descent
+            print('Logistic regression using ' + solver + ' with learning rate = ' + str(self.step_size))
             print('------------------------------------------\n')
+            
+            if solver == 'sgd':
+                mdx = 0 # sample index
             
             # Data for plotting
             if self.verbose:
@@ -101,23 +101,37 @@ class LogisticRegression(LinearModel):
             # Theta iterations
             updates = np.zeros((n,1))
             for idx in range(self.max_iter):
+                if solver == 'bgd':
+                    x_sample = x
+                    y_sample = y
+                elif solver == 'sgd':
+                    x_sample = x[:,mdx]
+                    x_sample = np.reshape(x_sample,(x_sample.size,1))
+                    y_sample = y[mdx]
+                    
                 # Calculate the hypothesis, h = g(<theta,x>). g is the sigmoid function.
-                theta_dot_x = np.matmul(self.theta.transpose(),x) # dot product of theta and x, <theta,x>. Dimensions: 1 x m
+                theta_dot_x = np.matmul(self.theta.transpose(),x_sample) # dot product of theta and x, <theta,x>. Dimensions: 1 x m
                 theta_dot_x[np.where(theta_dot_x < -20)] = -20 # avoid overflow
                 theta_dot_x[np.where(theta_dot_x > 20)] = 20
                 g = 1/(1 + np.exp(-theta_dot_x)) # g(<theta,x>). Dimensions: 1 x m
                 
-                err = y-g # error
-                updates = self.step_size*np.matmul(x,err.transpose()) # updates for next iteration
+                err = y_sample-g # error
+                if solver == 'bgd':
+                    updates = self.step_size*np.matmul(x_sample,err.transpose()) # updates for next iteration
+                elif solver == 'sgd':
+                    updates = self.step_size*x_sample*err
 
                 # Print debug outputs and check for convergence
                 updates_l1_norm = sum(abs(updates))[0]
                 if (self.verbose and idx in idxs) or updates_l1_norm < self.eps:
                     if self.verbose:
                         # Calculate loss
-                        ell = y*np.log(g) + (1-y)*np.log(1-g)
+                        ell = y_sample*np.log(g) + (1-y_sample)*np.log(1-g)
                         ell = np.sum(ell,axis=1)[0] # likelihood (which we're trying to maximize)
-                        loss = -ell/m # loss (which we're trying to minimize)
+                        if solver == 'bgd':
+                            loss = -ell/m # loss (which we're trying to minimize)
+                        elif solver == 'sgd':
+                            loss = -ell
                         
                         print('Iteration: ' + str(idx))
                         print('------------------------------------------')
@@ -150,6 +164,8 @@ class LogisticRegression(LinearModel):
                 
                 # Update theta
                 self.theta = self.theta + updates
+                if solver == 'sgd':
+                    mdx = (mdx+1) % m
             
             if self.verbose:
                 plt.figure()
@@ -181,9 +197,6 @@ class LogisticRegression(LinearModel):
                 plt.xticks(fontsize=20)
                 plt.yticks(fontsize=20)
                 plt.grid()
-        
-        elif solver == 'sgd': # stochastic gradient descent
-            'tbd'
                 
         elif solver == 'newton': # Newton's method
             'tbd'
