@@ -2,6 +2,7 @@ import numpy as np
 import util
 import matplotlib.pyplot as plt
 from IPython import get_ipython
+import time
 
 from linear_model import LinearModel
 
@@ -82,6 +83,7 @@ class LogisticRegression(LinearModel):
             self.theta = np.zeros((n,1))
         
         # Iteration algorithm
+        tstart = time.perf_counter() # in seconds
         if solver == 'bgd': # batch gradient descent
             print('Logistic regression using batch gradient descent with learning rate = ' + str(self.step_size))
             print('------------------------------------------\n')
@@ -104,65 +106,50 @@ class LogisticRegression(LinearModel):
                 theta_dot_x[np.where(theta_dot_x < -20)] = -20 # avoid overflow
                 theta_dot_x[np.where(theta_dot_x > 20)] = 20
                 g = 1/(1 + np.exp(-theta_dot_x)) # g(<theta,x>). Dimensions: 1 x m
+                
                 err = y-g # error
-                
-                if self.verbose and idx in idxs:
-                    # Calculate loss
-                    ell = y*np.log(g) + (1-y)*np.log(1-g)
-                    ell = np.sum(ell,axis=1)[0] # likelihood (which we're trying to maximize)
-                    loss = -ell/m # loss (which we're trying to minimize)
-                    
-                    print('Iteration: ' + str(idx))
-                    print('------------------------------------------')
-                    print('Theta = ' + str(np.round(self.theta,2)))
-                    err_abs_sum = np.sum(abs(err),axis=1)[0]
-                    print('Sum of absolute error = ' + str(np.round(err_abs_sum,2)))
-                    print('Log likelihood = ' + str(round(ell,2)))
-                    print('Loss = ' + str(round(loss,2)))
-                    
-                    thetas[:,odx] = np.reshape(self.theta,self.theta.size)
-                    errs[odx] = err_abs_sum
-                    losses[odx] = loss
-                    odx = odx+1
-                    
-                # Calculate updates for next iteration
-                updates = self.step_size*np.matmul(x,err.transpose())
-                
-                # Update theta
-                self.theta = self.theta + updates
-                
-                # If L1 norm of the updates is less than epsilon, you're finished
+                updates = self.step_size*np.matmul(x,err.transpose()) # updates for next iteration
+
+                # Print debug outputs and check for convergence
                 updates_l1_norm = sum(abs(updates))[0]
-                if updates_l1_norm < self.eps:
+                if (self.verbose and idx in idxs) or updates_l1_norm < self.eps:
                     if self.verbose:
-                        # Truncate output variables
-                        bmask = idxs <= idx
-                        idxs = idxs[bmask]
-                        thetas = thetas[:,bmask]
-                        errs = errs[bmask]
-                        losses = losses[bmask]
-                        
-                        # Add last iteration
-                        
                         # Calculate loss
                         ell = y*np.log(g) + (1-y)*np.log(1-g)
                         ell = np.sum(ell,axis=1)[0] # likelihood (which we're trying to maximize)
                         loss = -ell/m # loss (which we're trying to minimize)
                         
+                        print('Iteration: ' + str(idx))
+                        print('------------------------------------------')
+                        print('Theta = ' + str(np.round(self.theta,2)))
                         err_abs_sum = np.sum(abs(err),axis=1)[0]
+                        print('Sum of absolute error = ' + str(np.round(err_abs_sum,2)))
+                        print('Log likelihood = ' + str(round(ell,2)))
+                        print('Loss = ' + str(round(loss,2)))
+                        print('Update = ' + str(np.round(updates,2)))
+                        print('L1 norm of update vector = ' + str(updates_l1_norm))
+                        print('\n')
                         
-                        idxs = np.append(idxs,idx)
-                        thetas = np.append(thetas,self.theta,axis=1)
-                        errs = np.append(errs,err_abs_sum)
-                        losses = np.append(losses,loss)
+                        thetas[:,odx] = np.reshape(self.theta,self.theta.size)
+                        errs[odx] = err_abs_sum
+                        losses[odx] = loss
                         
-                    break
+                        if updates_l1_norm < self.eps:
+                            # Truncate output variables
+                            idxs[odx] = idx
+                            idxs = idxs[0:odx+1]
+                            thetas = thetas[:,0:odx+1]
+                            errs = errs[0:odx+1]
+                            losses = losses[0:odx+1]
+                        
+                        odx = odx+1
+                    
+                    # If L1 norm of the updates is less than epsilon, you're finished
+                    if updates_l1_norm < self.eps:
+                        break                 
                 
-                # Debug messages
-                if self.verbose and idx in idxs:
-                    print('Update = ' + str(np.round(updates,2)))
-                    print('L1 norm of update vector = ' + str(updates_l1_norm))
-                    print('\n')
+                # Update theta
+                self.theta = self.theta + updates
             
             if self.verbose:
                 plt.figure()
@@ -200,6 +187,10 @@ class LogisticRegression(LinearModel):
                 
         elif solver == 'newton': # Newton's method
             'tbd'
+            
+        tstop = time.perf_counter() # in seconds
+        telapse = tstop-tstart
+        print('Elapsed time (s) = ' + str(telapse))
                     
             
 
