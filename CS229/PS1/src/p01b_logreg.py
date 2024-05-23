@@ -73,7 +73,7 @@ def main(train_path,eval_path,pred_path):
     num_errs = sum(abs(h-y))
     print('Number of errors in the prediction: ' + str(num_errs))
     
-    # Plot testing results
+    # Post-processing: separate correct predictions from incorrect preidctions
     deltas = h-y
     idx_one_one = np.logical_and(np.asarray(deltas == 0),np.asarray(y == 1)).nonzero()[0] # y is 1, prediction is 1
     idx_one_zero = np.logical_and(np.asarray(deltas == -1),np.asarray(y == 1)).nonzero()[0] # y is 1, prediction is 0
@@ -82,6 +82,21 @@ def main(train_path,eval_path,pred_path):
     if idx_one_one.size+idx_one_zero.size+idx_zero_zero.size+idx_zero_one.size != y.size:
         raise Exception('Testing error')
     
+    # Post-processing: calculate hypotheses
+    x1 = np.linspace(min(x[:,1]),max(x[:,1]),num=100) # columns (x1)
+    x2 = np.linspace(min(x[:,2]),max(x[:,2]),num=100) # rows (x2)
+    g = np.zeros((len(x1),len(x2)))
+    # Loop over rows
+    for xdx in range(len(x2)):
+        x_g = np.concatenate((np.ones((x1.size,1)),np.reshape(x1,(x1.size,1)),x2[xdx]*np.ones((x1.size,1))),axis=1)
+        x_g = x_g.transpose()
+        theta_dot_x = np.matmul(clf.theta.transpose(),x_g) # dot product of theta and x, <theta,x>. Dimensions: 1 x m
+        theta_dot_x[np.where(theta_dot_x < -20)] = -20 # avoid overflow
+        theta_dot_x[np.where(theta_dot_x > 20)] = 20
+        g_row = 1/(1 + np.exp(-theta_dot_x)) # g(<theta,x>). Dimensions: 1 x m
+        g[xdx,:] = g_row
+   
+    # Plot testing results
     plt.figure()
     if idx_one_one.size > 0:
         plt.scatter(x[idx_one_one,1],x[idx_one_one,2],marker="^",s=200,label="y=1,h=1")
@@ -91,14 +106,17 @@ def main(train_path,eval_path,pred_path):
         plt.scatter(x[idx_one_zero,1],x[idx_one_zero,2],marker="^",s=200,label="y=1,h=0")
     if idx_zero_one.size > 0:
         plt.scatter(x[idx_zero_one,1],x[idx_zero_one,2],marker="o",s=50,label="y=0,h=1")
+
+    contour_obj = plt.contour(x1,x2,g,np.linspace(0,1,11))
+    
     plt.title("Testing Results for Logistic Regression",{'fontsize':40})
     plt.xlabel("x_1",{'fontsize':30})
     plt.ylabel("x_2",{'fontsize':30})
-    plt.legend(loc="upper right",fontsize=20)
+    plt.clabel(contour_obj,contour_obj.levels, inline=True, fontsize=15)
+    plt.legend(loc="upper left",fontsize=20)
     plt.xticks(fontsize=20)
     plt.yticks(fontsize=20)
     plt.grid()
-        
     
     return clf
 
@@ -266,6 +284,7 @@ class LogisticRegression(LinearModel):
             
         tstop = time.perf_counter() # in seconds
         telapse = tstop-tstart
+        print('Number of iterations = ' + str(idx))
         print('Elapsed time (s) = ' + str(telapse))
 
     def predict(self,x):
