@@ -73,7 +73,7 @@ def main(train_path,eval_path,pred_path):
     num_errs = sum(abs(h-y))
     print('Number of errors in the prediction: ' + str(num_errs))
     
-    # Post-processing: separate correct predictions from incorrect preidctions
+    # Post-processing: separate correct predictions from incorrect predictions
     deltas = h-y
     idx_one_one = np.logical_and(np.asarray(deltas == 0),np.asarray(y == 1)).nonzero()[0] # y is 1, prediction is 1
     idx_one_zero = np.logical_and(np.asarray(deltas == -1),np.asarray(y == 1)).nonzero()[0] # y is 1, prediction is 0
