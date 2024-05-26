@@ -40,6 +40,7 @@ def main(train_path,eval_path,pred_path):
         raise Exception('Testing error')
     
     # Post-processing: calculate hypotheses
+    """
     x1 = np.linspace(min(x[:,0]),max(x[:,0]),num=100) # columns (x1)
     x2 = np.linspace(min(x[:,1]),max(x[:,1]),num=100) # rows (x2)
     g = np.zeros((len(x1),len(x2)))
@@ -53,7 +54,18 @@ def main(train_path,eval_path,pred_path):
         g_row = 1/(1 + np.exp(-theta_dot_x)) # g(<theta,x>). Dimensions: 1 x m
         g[xdx,:] = g_row
    
-    # Plot testing results
+    contour_obj = plt.contour(x1,x2,g,np.linspace(0,1,11))
+
+    """
+    
+    # Post-processing: calculate decision boundary (where theta.T * x is zero)
+    theta0 = clf.theta[0,0]
+    theta1 = clf.theta[1,0]
+    theta2 = clf.theta[2,0]
+    x1 = np.linspace(min(x[:,0]),max(x[:,0]),num=100)
+    x2 = (-theta0 - theta1*x1)/theta2
+    
+    # Plot results
     plt.figure()
     if idx_one_one.size > 0:
         plt.scatter(x[idx_one_one,0],x[idx_one_one,1],marker="^",s=200,label="y=1,h=1")
@@ -64,12 +76,12 @@ def main(train_path,eval_path,pred_path):
     if idx_zero_one.size > 0:
         plt.scatter(x[idx_zero_one,0],x[idx_zero_one,1],marker="o",s=50,label="y=0,h=1")
 
-    contour_obj = plt.contour(x1,x2,g,np.linspace(0,1,11))
+    plt.plot(x1,x2,'--k',linewidth=3,label='GDA decision boundary')
     
     plt.title("Testing Results for Logistic Regression",{'fontsize':40})
     plt.xlabel("x_1",{'fontsize':30})
     plt.ylabel("x_2",{'fontsize':30})
-    plt.clabel(contour_obj,contour_obj.levels, inline=True, fontsize=15)
+    #plt.clabel(contour_obj,contour_obj.levels, inline=True, fontsize=15)
     plt.legend(loc="upper left",fontsize=20)
     plt.xticks(fontsize=20)
     plt.yticks(fontsize=20)
@@ -133,8 +145,9 @@ class GDA(LinearModel):
         Sigma_inv = linalg.inv(Sigma)
         
         # Calculate theta
-        self.theta = np.matmul(Sigma_inv,mu1-mu0)
-        self.theta0 = 1/2*np.matmul((mu0+mu1).transpose(),np.matmul(Sigma_inv,(mu0-mu1))) - np.log((1-phi)/phi)
+        theta = np.matmul(Sigma_inv,mu1-mu0)
+        theta0 = 1/2*np.matmul((mu0+mu1).transpose(),np.matmul(Sigma_inv,(mu0-mu1))) - np.log((1-phi)/phi)
+        self.theta = np.concatenate((theta0,theta))
         
         tstop = time.perf_counter() # in seconds
         telapse = tstop-tstart
@@ -161,7 +174,7 @@ class GDA(LinearModel):
         x = x.transpose()
         
         # Calculate hypotheses
-        theta_dot_x = np.matmul(self.theta.transpose(),x) + self.theta0 # dot product of theta and x, <theta,x>. Dimensions: 1 x m
+        theta_dot_x = np.matmul(self.theta[1:,:].transpose(),x) + self.theta[0,0] # dot product of theta and x, <theta,x>. Dimensions: 1 x m
         theta_dot_x[np.where(theta_dot_x < -20)] = -20 # avoid overflow
         theta_dot_x[np.where(theta_dot_x > 20)] = 20
         g = 1/(1 + np.exp(-theta_dot_x)) # g(<theta,x>). Dimensions: 1 x m
@@ -172,6 +185,6 @@ if __name__ == '__main__':
     plt.close('all')
     get_ipython().magic('reset -sf')
     
-    dsidx = 2 # data set index, 1 or 2
+    dsidx = 1 # data set index, 1 or 2
     #clf = main('../data/ds1_train.csv','../data/ds1_valid.csv','../data/')
     clf = main('../data/ds' + str(dsidx) + '_train.csv','../data/ds' + str(dsidx) + '_valid.csv','../data/')
