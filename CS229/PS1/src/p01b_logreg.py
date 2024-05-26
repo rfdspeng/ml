@@ -26,6 +26,7 @@ def main(train_path,eval_path,pred_path):
     x,y = util.load_dataset(train_path,add_intercept=True)
     
     # Plot training data
+    """
     idx_ones = np.asarray(y == 1).nonzero()[0]
     idx_zeros = np.asarray(y == 0).nonzero()[0]
     plt.figure()
@@ -38,6 +39,7 @@ def main(train_path,eval_path,pred_path):
     plt.xticks(fontsize=20)
     plt.yticks(fontsize=20)
     plt.grid()
+    """
     
     clf = LogisticRegression()
     clf.verbose = False
@@ -53,6 +55,7 @@ def main(train_path,eval_path,pred_path):
     x,y = util.load_dataset(eval_path,add_intercept=True)
     
     # Plot eval data
+    """
     idx_ones = np.asarray(y == 1).nonzero()[0]
     idx_zeros = np.asarray(y == 0).nonzero()[0]
     plt.figure()
@@ -65,6 +68,7 @@ def main(train_path,eval_path,pred_path):
     plt.xticks(fontsize=20)
     plt.yticks(fontsize=20)
     plt.grid()
+    """
     
     # Predictions
     h = clf.predict(x)
@@ -73,7 +77,7 @@ def main(train_path,eval_path,pred_path):
     num_errs = sum(abs(h-y))
     print('Number of errors in the prediction: ' + str(num_errs))
     
-    # Post-processing: separate correct predictions from incorrect preidctions
+    # Post-processing: separate correct predictions from incorrect predictions
     deltas = h-y
     idx_one_one = np.logical_and(np.asarray(deltas == 0),np.asarray(y == 1)).nonzero()[0] # y is 1, prediction is 1
     idx_one_zero = np.logical_and(np.asarray(deltas == -1),np.asarray(y == 1)).nonzero()[0] # y is 1, prediction is 0
@@ -83,6 +87,7 @@ def main(train_path,eval_path,pred_path):
         raise Exception('Testing error')
     
     # Post-processing: calculate hypotheses
+    """
     x1 = np.linspace(min(x[:,1]),max(x[:,1]),num=100) # columns (x1)
     x2 = np.linspace(min(x[:,2]),max(x[:,2]),num=100) # rows (x2)
     g = np.zeros((len(x1),len(x2)))
@@ -95,6 +100,16 @@ def main(train_path,eval_path,pred_path):
         theta_dot_x[np.where(theta_dot_x > 20)] = 20
         g_row = 1/(1 + np.exp(-theta_dot_x)) # g(<theta,x>). Dimensions: 1 x m
         g[xdx,:] = g_row
+        
+    contour_obj = plt.contour(x1,x2,g,np.linspace(0,1,11))
+   """
+   
+   # Post-processing: calculate decision boundary (where theta.T * x is zero)
+    theta0 = clf.theta[0,0]
+    theta1 = clf.theta[1,0]
+    theta2 = clf.theta[2,0]
+    x1 = np.linspace(min(x[:,1]),max(x[:,1]),num=100)
+    x2 = (-theta0 - theta1*x1)/theta2
    
     # Plot testing results
     plt.figure()
@@ -107,12 +122,12 @@ def main(train_path,eval_path,pred_path):
     if idx_zero_one.size > 0:
         plt.scatter(x[idx_zero_one,1],x[idx_zero_one,2],marker="o",s=50,label="y=0,h=1")
 
-    contour_obj = plt.contour(x1,x2,g,np.linspace(0,1,11))
+    plt.plot(x1,x2,'--k',linewidth=3,label='Logreg decision boundary')
     
     plt.title("Testing Results for Logistic Regression",{'fontsize':40})
     plt.xlabel("x_1",{'fontsize':30})
     plt.ylabel("x_2",{'fontsize':30})
-    plt.clabel(contour_obj,contour_obj.levels, inline=True, fontsize=15)
+    #plt.clabel(contour_obj,contour_obj.levels, inline=True, fontsize=15)
     plt.legend(loc="upper left",fontsize=20)
     plt.xticks(fontsize=20)
     plt.yticks(fontsize=20)
@@ -319,6 +334,6 @@ if __name__ == '__main__':
     plt.close('all')
     get_ipython().magic('reset -sf')
     
-    dsidx = 2 # data set index, 1 or 2
+    dsidx = 1 # data set index, 1 or 2
     #clf = main('../data/ds1_train.csv','../data/ds1_valid.csv','../data/')
     clf = main('../data/ds' + str(dsidx) + '_train.csv','../data/ds' + str(dsidx) + '_valid.csv','../data/')
