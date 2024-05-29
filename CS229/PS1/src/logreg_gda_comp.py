@@ -2,6 +2,8 @@
 """
 Created on Sun May 26 11:47:34 2024
 
+Compare logreg and GDA performance
+
 @author: Ryan Tsai
 """
 
@@ -21,7 +23,8 @@ if __name__ == '__main__':
     plt.close('all')
     get_ipython().magic('reset -sf')
     
-    dsidx = 2 # data set index, 1 or 2
+    dsidx = 1 # data set index, 1 or 2
+    transform = 1 # if 1, then take natural log of x2
     
     train_path = '../data/ds' + str(dsidx) + '_train.csv'
     eval_path = '../data/ds' + str(dsidx) + '_valid.csv'
@@ -30,6 +33,8 @@ if __name__ == '__main__':
     
     # add_intercept=True means adding x_0=1 as the first column
     x,y = util.load_dataset(train_path,add_intercept=True)
+    if transform:
+        x[:,-1] = np.log(x[:,-1])
     
     logreg_clf = p01b_logreg.LogisticRegression()
     logreg_clf.verbose = False
@@ -38,6 +43,8 @@ if __name__ == '__main__':
     """ Logreg testing """
     
     x,y = util.load_dataset(eval_path,add_intercept=True)
+    if transform:
+        x[:,-1] = np.log(x[:,-1])
     
     h = logreg_clf.predict(x)
     h = np.reshape(h,h.size)
@@ -64,12 +71,18 @@ if __name__ == '__main__':
     """ GDA training """
     
     x,y = util.load_dataset(train_path,add_intercept=False)
+    if transform:
+        x[:,-1] = np.log(x[:,-1])
+    
     gda_clf = p01e_gda.GDA()
     gda_clf.fit(x,y)
     
     """ GDA testing """
     
     x,y = util.load_dataset(eval_path,add_intercept=False)
+    if transform:
+        x[:,-1] = np.log(x[:,-1])
+        
     h = gda_clf.predict(x)
     h = np.reshape(h,h.size)
     
