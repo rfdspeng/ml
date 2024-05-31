@@ -73,6 +73,7 @@ def main(train_path,eval_path,pred_path):
     # Predictions
     h = clf.predict(x)
     h = np.reshape(h,h.size)
+    h = np.round(h)
 
     num_errs = sum(abs(h-y))
     print('Number of errors in the prediction: ' + str(num_errs))
@@ -170,8 +171,8 @@ class LogisticRegression(LinearModel):
             raise Exception('The number of samples in x does not match the number of samples in y')
         
         # Initialize theta
-        if self.theta == None:
-            self.theta = np.zeros((n,1))
+        #if self.theta == None:
+        self.theta = np.zeros((n,1))
         
         # Iteration algorithm
         print('Logistic regression using ' + solver + ' with learning rate = ' + str(self.step_size))
@@ -304,6 +305,8 @@ class LogisticRegression(LinearModel):
 
     def predict(self,x):
         """Make a prediction given new inputs x.
+        
+        Returns P(y=1|x)
 
         Args:
             x: Inputs of shape (m, n).
@@ -327,13 +330,13 @@ class LogisticRegression(LinearModel):
         theta_dot_x[np.where(theta_dot_x < -20)] = -20 # avoid overflow
         theta_dot_x[np.where(theta_dot_x > 20)] = 20
         g = 1/(1 + np.exp(-theta_dot_x)) # g(<theta,x>). Dimensions: 1 x m
-        h = np.round(g)
+        h = g
         return h
 
 if __name__ == '__main__':
     plt.close('all')
     get_ipython().magic('reset -sf')
     
-    dsidx = 1 # data set index, 1 or 2
+    dsidx = 2 # data set index, 1 or 2
     #clf = main('../data/ds1_train.csv','../data/ds1_valid.csv','../data/')
     clf = main('../data/ds' + str(dsidx) + '_train.csv','../data/ds' + str(dsidx) + '_valid.csv','../data/')

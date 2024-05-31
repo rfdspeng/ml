@@ -38,16 +38,34 @@ def main(train_path,valid_path,test_path,pred_path):
     # Plot and use np.savetxt to save outputs to pred_path_e
     # *** END CODER HERE
     
-    # add_intercept=True means adding x_0=1 as the first column
-    #x,y = util.load_dataset(train_path,label_col='t',add_intercept=True)
-    x,y = util.load_dataset(train_path,label_col='y',add_intercept=True)
-    
     logreg_clf = LogisticRegression()
     logreg_clf.verbose = False; logreg_clf.max_iter = 400000
+    
+    """ Train and test on true labels """
+    # add_intercept=True means adding x_0=1 as the first column
+    x,y = util.load_dataset(train_path,label_col='t',add_intercept=True)
     logreg_clf.fit(x,y,solver='newton')
     
+    x,y = util.load_dataset(test_path,label_col='t',add_intercept=True)
+    h = logreg_clf.predict(x)
+    h = np.reshape(h,h.size)
+    h = np.round(h)
     util.plot(x,y,logreg_clf.theta)
     
+    """ Train and test on database """
+    x,y = util.load_dataset(train_path,label_col='y',add_intercept=True)
+    logreg_clf.fit(x,y,solver='newton')
+    
+    x,y = util.load_dataset(test_path,label_col='y',add_intercept=True)
+    h = logreg_clf.predict(x)
+    h = np.reshape(h,h.size)
+    alpha = np.mean(h)
+    h = np.round(h)
+    util.plot(x,y,logreg_clf.theta)
+    
+    util.plot(x,y,logreg_clf.theta,correction=alpha)
+    
+    return logreg_clf
 
 if __name__ == '__main__':
     plt.close('all')

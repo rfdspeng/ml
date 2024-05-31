@@ -23,8 +23,8 @@ if __name__ == '__main__':
     plt.close('all')
     get_ipython().magic('reset -sf')
     
-    dsidx = 1 # data set index, 1 or 2
-    transform = 1 # if 1, then take natural log of x2
+    dsidx = 2 # data set index, 1 or 2
+    transform = 0 # if 1, then take natural log of x2
     
     train_path = '../data/ds' + str(dsidx) + '_train.csv'
     eval_path = '../data/ds' + str(dsidx) + '_valid.csv'
@@ -48,6 +48,7 @@ if __name__ == '__main__':
     
     h = logreg_clf.predict(x)
     h = np.reshape(h,h.size)
+    h = np.round(h)
 
     num_errs = sum(abs(h-y))
     print('Number of errors in the logreg prediction: ' + str(num_errs))
@@ -85,6 +86,7 @@ if __name__ == '__main__':
         
     h = gda_clf.predict(x)
     h = np.reshape(h,h.size)
+    h = np.round(h)
     
     num_errs = sum(abs(h-y))
     print('Number of errors in the GDA prediction: ' + str(num_errs))
