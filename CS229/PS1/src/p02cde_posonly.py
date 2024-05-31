@@ -1,5 +1,9 @@
 import numpy as np
 import util
+import matplotlib.pyplot as plt
+from IPython import get_ipython
+import time
+from numpy import linalg
 
 from p01b_logreg import LogisticRegression
 
@@ -7,7 +11,7 @@ from p01b_logreg import LogisticRegression
 WILDCARD = 'X'
 
 
-def main(train_path, valid_path, test_path, pred_path):
+def main(train_path,valid_path,test_path,pred_path):
     """Problem 2: Logistic regression for incomplete, positive-only labels.
 
     Run under the following conditions:
@@ -21,9 +25,9 @@ def main(train_path, valid_path, test_path, pred_path):
         test_path: Path to CSV file containing test set.
         pred_path: Path to save predictions.
     """
-    pred_path_c = pred_path.replace(WILDCARD, 'c')
-    pred_path_d = pred_path.replace(WILDCARD, 'd')
-    pred_path_e = pred_path.replace(WILDCARD, 'e')
+    pred_path_c = pred_path.replace(WILDCARD,'c')
+    pred_path_d = pred_path.replace(WILDCARD,'d')
+    pred_path_e = pred_path.replace(WILDCARD,'e')
 
     # *** START CODE HERE ***
     # Part (c): Train and test on true labels
@@ -33,3 +37,22 @@ def main(train_path, valid_path, test_path, pred_path):
     # Part (e): Apply correction factor using validation set and test on true labels
     # Plot and use np.savetxt to save outputs to pred_path_e
     # *** END CODER HERE
+    
+    # add_intercept=True means adding x_0=1 as the first column
+    #x,y = util.load_dataset(train_path,label_col='t',add_intercept=True)
+    x,y = util.load_dataset(train_path,label_col='y',add_intercept=True)
+    
+    logreg_clf = LogisticRegression()
+    logreg_clf.verbose = False; logreg_clf.max_iter = 400000
+    logreg_clf.fit(x,y,solver='newton')
+    
+    util.plot(x,y,logreg_clf.theta)
+    
+
+if __name__ == '__main__':
+    plt.close('all')
+    get_ipython().magic('reset -sf')
+    
+    dsidx = 3
+    
+    clf = main('../data/ds' + str(dsidx) + '_train.csv','../data/ds' + str(dsidx) + '_valid.csv','../data/ds' + str(dsidx) + '_test.csv','../data/')
