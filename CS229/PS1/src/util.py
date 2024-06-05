@@ -88,3 +88,28 @@ def plot(x, y, theta, save_path=None, correction=1.0):
     plt.ylabel('x2')
     if save_path is not None:
         plt.savefig(save_path)
+
+def plot_custom(x,y,theta,title="Classification",alpha=1.0):
+    # Calculate decision boundary
+    if theta.ndim == 2:
+        theta = np.reshape(theta,theta.size)
+
+    x1 = np.linspace(min(x[:,1]),max(x[:,1]),num=100)
+    x2 = -(np.log(2/alpha-1) + theta[0] + theta[1]*x1)/theta[2]
+    #x2 = -(alpha*theta[0] + theta[1]*x1)/theta[2]
+   
+    # Plot dataset
+    plt.figure()
+    plt.scatter(x[y == 1,-2],x[y == 1,-1],marker="x",s=50,label="y=1")
+    plt.scatter(x[y == 0,-2],x[y == 0,-1],marker="o",s=50,label="y=0")
+    
+    # Plot decision boundary
+    plt.plot(x1,x2,'--k',linewidth=3,label='Decision boundary')
+    
+    plt.title(title,{'fontsize':40})
+    plt.xlabel("x1",{'fontsize':30})
+    plt.ylabel("x2",{'fontsize':30})
+    plt.legend(loc="upper left",fontsize=20)
+    plt.xticks(fontsize=20)
+    plt.yticks(fontsize=20)
+    plt.grid()
