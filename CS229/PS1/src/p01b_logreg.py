@@ -6,6 +6,7 @@ import time
 from numpy import linalg
 
 from linear_model import LinearModel
+from glm import GeneralizedLinearModel
 
 def main(train_path,eval_path,pred_path):
     """Problem 1(b): Logistic regression with Newton's Method.
@@ -41,11 +42,17 @@ def main(train_path,eval_path,pred_path):
     plt.grid()
     """
     
+    """
     clf = LogisticRegression()
-    clf.verbose = False
+    clf.verbose = True
     #clf.max_iter = 400000; clf.step_size = 0.000001; clf.fit(x,y,solver='bgd')
     #clf.eps = 0; clf.max_iter = round(4e5*4); clf.step_size = 0.001; clf.fit(x,y,solver='sgd')
     clf.max_iter = 400000; clf.fit(x,y,solver='newton')
+    """
+    
+    clf = GeneralizedLinearModel(dist='bernoulli')
+    clf.verbose = True
+    clf.fit(x,y)
     
     """
     Testing
@@ -337,6 +344,6 @@ if __name__ == '__main__':
     plt.close('all')
     get_ipython().magic('reset -sf')
     
-    dsidx = 2 # data set index, 1 or 2
+    dsidx = 1 # data set index, 1 or 2
     #clf = main('../data/ds1_train.csv','../data/ds1_valid.csv','../data/')
     clf = main('../data/ds' + str(dsidx) + '_train.csv','../data/ds' + str(dsidx) + '_valid.csv','../data/')

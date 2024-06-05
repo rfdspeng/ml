@@ -7,6 +7,7 @@ from numpy import linalg
 import copy
 
 from p01b_logreg import LogisticRegression
+from glm import GeneralizedLinearModel
 
 # Character to replace with sub-problem letter in plot_path/pred_path
 WILDCARD = 'X'
@@ -39,8 +40,9 @@ def main(train_path,valid_path,test_path,pred_path):
     # Plot and use np.savetxt to save outputs to pred_path_e
     # *** END CODER HERE
     
-    logreg_clf = LogisticRegression()
-    logreg_clf.verbose = False; logreg_clf.max_iter = 400000
+    #logreg_clf = LogisticRegression()
+    #logreg_clf.verbose = False; logreg_clf.max_iter = 400000
+    logreg_clf = GeneralizedLinearModel(dist='bernoulli')
     
     """ Train and test on the true labels """
     x,y = util.load_dataset(train_path,label_col='t',add_intercept=True)
