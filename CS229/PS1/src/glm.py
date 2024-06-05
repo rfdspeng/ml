@@ -135,7 +135,7 @@ class GeneralizedLinearModel(LinearModel):
                         b = 1/np.sqrt(2*np.pi)*np.exp(-y**2/2)
                         a = 1/2*eta**2
                     elif self.dist == 'poisson':
-                        b = 1/scipy.special(y_sample)
+                        b = 1/scipy.special.factorial(y_sample)
                         a = np.exp(eta)
                     else:
                         raise Exception('Distribution not supported')
