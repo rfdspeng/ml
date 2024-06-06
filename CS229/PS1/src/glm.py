@@ -131,17 +131,22 @@ class GeneralizedLinearModel(LinearModel):
                     if self.dist == 'bernoulli':
                         b = 1
                         a = np.log(1 + np.exp(eta))
+                        ell = np.log(b) + eta*y_sample - a
                     elif self.dist == 'gaussian':
                         b = 1/np.sqrt(2*np.pi)*np.exp(-y**2/2)
                         a = 1/2*eta**2
+                        ell = np.log(b) + eta*y_sample - a
                     elif self.dist == 'poisson':
-                        b = 1/scipy.special.factorial(y_sample)
+                        #b = 1/scipy.special.factorial(y_sample)
+                        #b = np.exp(-scipy.special.gammaln(y_sample+1))
                         a = np.exp(eta)
+                        ell = -scipy.special.gammaln(y_sample+1) + eta*y_sample - a
                     else:
                         raise Exception('Distribution not supported')
                       
-                    L = b*np.exp(eta*y_sample - a)
-                    ell = np.log(L)
+                    #L = b*np.exp(eta*y_sample - a)
+                    #ell = np.log(L)
+                    #ell = np.log(b) + eta*y_sample - a
                     ell = np.sum(ell,axis=1)[0] # log likelihood (which we're trying to maximize)
                     
                     # Calculate loss (which we're trying to minimize)
